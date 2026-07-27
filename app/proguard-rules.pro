@@ -1,0 +1,2 @@
+# CameraX
+-dontwarn androidx.camera.**

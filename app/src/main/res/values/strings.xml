@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EarllnCam</string>
+
+    <string name="status_preparing">준비 중...</string>
+    <string name="status_shooting_front">%1$d / %2$d 촬영 중 (정면)</string>
+    <string name="status_shooting_back">%1$d / %2$d 촬영 중 (후면)</string>
+    <string name="status_recording_front">%1$d / %2$d 녹화 중 (정면)</string>
+    <string name="status_recording_back">%1$d / %2$d 녹화 중 (후면)</string>
+    <string name="status_cleaning_up">이전 사진 정리 중...</string>
+    <string name="status_done">완료</string>
+    <string name="status_permission_denied">카메라 권한이 없어 촬영할 수 없습니다.</string>
+    <string name="status_camera_error">카메라를 사용할 수 없습니다.</string>
+
+    <string name="settings_title">EarllnCam 설정</string>
+    <string name="settings_long_label">EarllnCam 촬영 설정</string>
+    <string name="settings_shot_count_label">촬영 매수</string>
+    <string name="settings_mode_label">촬영 모드</string>
+    <string name="settings_mode_photo">사진</string>
+    <string name="settings_mode_video">동영상</string>
+    <string name="settings_video_seconds_label">클립당 녹화 시간(초)</string>
+    <string name="settings_keep_only_latest_label">기존 사진/동영상은 항상 지우고 최신 결과만 남기기</string>
+    <string name="settings_save">저장</string>
+    <string name="settings_saved">설정을 저장했습니다.</string>
+</resources>
