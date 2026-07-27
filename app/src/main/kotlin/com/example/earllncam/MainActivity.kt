@@ -24,6 +24,7 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -33,13 +34,17 @@ import kotlin.coroutines.resume
  * Launcher entry point. Runs the whole capture sequence with zero taps:
  * ask for CAMERA once if needed, alternate front/back shots per AppSettings,
  * wipe the previous EarllnCam album on success, then finish() back to the
- * home screen. Options live in SettingsActivity, reachable only via the
- * app's long-press shortcut so this screen never waits on the user.
+ * home screen. Options live in SettingsActivity, reachable via its own
+ * launcher icon; if the user switches to it (or anywhere else) mid-sequence,
+ * onPause cancels the capture and closes this screen instead of leaving a
+ * stalled camera session behind.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var captureJob: Job? = null
+    private var cameraProvider: ProcessCameraProvider? = null
 
     private val requestCameraPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -66,9 +71,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun beginSequence() {
-        lifecycleScope.launch {
+        captureJob = lifecycleScope.launch {
             runCatching { runSequence() }
                 .onFailure { showStatusThenFinish(getString(R.string.status_camera_error)) }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // The user switched away (e.g. opened the "EarllnCam 설정" icon) before the
+        // sequence finished on its own. Camera access dies with foreground anyway,
+        // so stop cleanly here instead of leaving a stalled session running.
+        if (captureJob?.isActive == true) {
+            captureJob?.cancel()
+            runCatching { cameraProvider?.unbindAll() }
+            if (!isFinishing) finish()
         }
     }
 
@@ -81,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         val previousUris = if (keepOnlyLatest) MediaVault.existingUris(this) else emptyList()
 
         val cameraProvider = getCameraProvider()
+        this.cameraProvider = cameraProvider
 
         for (i in 0 until count) {
             val useFront = i % 2 == 0
