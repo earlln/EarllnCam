@@ -2,6 +2,7 @@ package com.example.earllncam
 
 import android.Manifest
 import android.content.ContentValues
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -12,6 +13,7 @@ import android.provider.MediaStore
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -34,10 +36,11 @@ import kotlin.coroutines.resume
  * Launcher entry point. Runs the whole capture sequence with zero taps:
  * ask for CAMERA once if needed, alternate front/back shots per AppSettings,
  * wipe the previous EarllnCam album on success, then finish() back to the
- * home screen. Options live in SettingsActivity, reachable via its own
- * launcher icon; if the user switches to it (or anywhere else) mid-sequence,
- * onPause cancels the capture and closes this screen instead of leaving a
- * stalled camera session behind.
+ * home screen. A small settings button sits in the bottom-right corner
+ * (out of the way of the status bar / gesture area) so options are reachable
+ * even mid-sequence; tapping it, or leaving this screen any other way,
+ * cancels the capture and unbinds the camera instead of leaving a stalled
+ * session behind.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -60,6 +63,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.statusText)
+        findViewById<FloatingActionButton>(R.id.settingsButton).setOnClickListener {
+            stopAndOpenSettings()
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             == PackageManager.PERMISSION_GRANTED
@@ -77,11 +83,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun stopAndOpenSettings() {
+        if (isFinishing) return
+        captureJob?.cancel()
+        runCatching { cameraProvider?.unbindAll() }
+        startActivity(Intent(this, SettingsActivity::class.java))
+        finish()
+    }
+
     override fun onPause() {
         super.onPause()
-        // The user switched away (e.g. opened the "EarllnCam 설정" icon) before the
-        // sequence finished on its own. Camera access dies with foreground anyway,
-        // so stop cleanly here instead of leaving a stalled session running.
+        // The user switched away (tapped the settings button, or left some other
+        // way) before the sequence finished on its own. Camera access dies with
+        // foreground anyway, so stop cleanly here instead of leaving a stalled
+        // session running.
         if (captureJob?.isActive == true) {
             captureJob?.cancel()
             runCatching { cameraProvider?.unbindAll() }
