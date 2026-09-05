@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: '릴리즈 태그 (예: v1.1.0). 비워두면 빌드만 하고 릴리즈는 만들지 않습니다.'
+        description: '릴리즈 태그 (예: v1.1.0). 비워두면 빌드만 합니다. 이미 있는 태그를 적으면 이번에 빌드한 커밋으로 다시 만듭니다.'
         required: false
         default: ''
 
@@ -96,11 +96,25 @@ jobs:
           name: EarllnCam-v${{ steps.version.outputs.name }}
           path: ${{ steps.collect.outputs.path }}
 
+      # Naming an existing tag on a manual run re-cuts it, so the tag cannot be
+      # left pointing at a commit other than the one this APK was built from.
+      - name: Replace an existing release for this tag
+        if: github.event.inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$TAG" || true
+
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          # Without this the tag would be cut from the default branch, not from
+          # the commit that was built.
+          target_commitish: ${{ github.sha }}
           name: EarllnCam v${{ steps.version.outputs.name }}
           body_path: RELEASE_NOTES.md
           files: ${{ steps.collect.outputs.path }}
