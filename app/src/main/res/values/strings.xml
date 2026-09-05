@@ -22,4 +22,15 @@
     <string name="settings_keep_only_latest_label">기존 사진/동영상은 항상 지우고 최신 결과만 남기기</string>
     <string name="settings_save">저장</string>
     <string name="settings_saved">설정을 저장했습니다.</string>
+
+    <string name="gallery_title">촬영 기록</string>
+    <string name="gallery_long_label">EarllnCam 촬영 기록</string>
+    <string name="gallery_count">총 %1$d개</string>
+    <string name="gallery_empty">아직 저장된 촬영 결과가 없습니다.</string>
+    <string name="gallery_empty_hint">설정에서 \'최신 결과만 남기기\'를 끄면 이전 기록도 함께 보관됩니다.</string>
+    <string name="gallery_type_photo">사진</string>
+    <string name="gallery_type_video">동영상</string>
+    <string name="gallery_open_failed">이 파일을 열 수 있는 앱이 없습니다.</string>
+
+    <string name="version_label">EarllnCam v%1$s by Earlln.com</string>
 </resources>

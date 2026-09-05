@@ -36,11 +36,11 @@ import kotlin.coroutines.resume
  * Launcher entry point. Runs the whole capture sequence with zero taps:
  * ask for CAMERA once if needed, alternate front/back shots per AppSettings,
  * wipe the previous EarllnCam album on success, then finish() back to the
- * home screen. A small settings button sits in the bottom-right corner
- * (out of the way of the status bar / gesture area) so options are reachable
- * even mid-sequence; tapping it, or leaving this screen any other way,
- * cancels the capture and unbinds the camera instead of leaving a stalled
- * session behind.
+ * home screen. Two small buttons sit along the bottom edge (out of the way of
+ * the status bar / gesture area) so the capture log and the options are
+ * reachable even mid-sequence; tapping either, or leaving this screen any
+ * other way, cancels the capture and unbinds the camera instead of leaving a
+ * stalled session behind. The version badge is shown at the bottom.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -63,8 +63,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.statusText)
+        findViewById<TextView>(R.id.versionText).text = AppVersion.label(this)
+        findViewById<FloatingActionButton>(R.id.galleryButton).setOnClickListener {
+            stopAndOpen(GalleryActivity::class.java)
+        }
         findViewById<FloatingActionButton>(R.id.settingsButton).setOnClickListener {
-            stopAndOpenSettings()
+            stopAndOpen(SettingsActivity::class.java)
         }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -83,18 +87,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopAndOpenSettings() {
+    private fun stopAndOpen(target: Class<*>) {
         if (isFinishing) return
         captureJob?.cancel()
         runCatching { cameraProvider?.unbindAll() }
-        startActivity(Intent(this, SettingsActivity::class.java))
+        startActivity(Intent(this, target))
         finish()
     }
 
     override fun onPause() {
         super.onPause()
-        // The user switched away (tapped the settings button, or left some other
-        // way) before the sequence finished on its own. Camera access dies with
+        // The user switched away (tapped one of the bottom buttons, or left some
+        // other way) before the sequence finished on its own. Camera access dies with
         // foreground anyway, so stop cleanly here instead of leaving a stalled
         // session running.
         if (captureJob?.isActive == true) {

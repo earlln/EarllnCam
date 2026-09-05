@@ -3,6 +3,20 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Version lives in version.properties at the repo root so a release is a
+// one-file bump; versionCode is derived from it and always increases.
+def versionProps = new Properties()
+file("$rootDir/version.properties").withInputStream { versionProps.load(it) }
+def versionMajor = versionProps.getProperty('versionMajor').toInteger()
+def versionMinor = versionProps.getProperty('versionMinor').toInteger()
+def versionPatch = versionProps.getProperty('versionPatch').toInteger()
+
+// Optional release signing. Set these environment variables (the release
+// workflow fills them from repository secrets) to get a properly signed,
+// upgradable release APK; without them the release build stays unsigned and
+// the debug-signed APK is what gets shipped.
+def releaseKeystore = System.getenv('EARLLNCAM_KEYSTORE_FILE')
+
 android {
     namespace 'com.example.earllncam'
     compileSdk 34
@@ -11,13 +25,27 @@ android {
         applicationId "com.example.earllncam"
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode versionMajor * 10000 + versionMinor * 100 + versionPatch
+        versionName "${versionMajor}.${versionMinor}.${versionPatch}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('EARLLNCAM_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('EARLLNCAM_KEY_ALIAS')
+                keyPassword System.getenv('EARLLNCAM_KEY_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
         release {
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -25,6 +53,8 @@ android {
 
     buildFeatures {
         viewBinding true
+        // Lets the app read its own versionName back out of BuildConfig.
+        buildConfig true
     }
 
     compileOptions {
@@ -41,6 +71,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
 
     // Lifecycle / coroutines
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'

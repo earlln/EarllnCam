@@ -81,5 +81,14 @@
             android:layout_marginTop="32dp"
             android:text="@string/settings_save" />
 
+        <TextView
+            android:id="@+id/versionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
     </LinearLayout>
 </ScrollView>

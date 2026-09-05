@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
+        android:shortcutId="gallery"
+        android:enabled="true"
+        android:icon="@drawable/ic_gallery"
+        android:shortcutShortLabel="@string/gallery_title"
+        android:shortcutLongLabel="@string/gallery_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.earllncam"
+            android:targetClass="com.example.earllncam.GalleryActivity" />
+    </shortcut>
+
+    <shortcut
         android:shortcutId="settings"
         android:enabled="true"
         android:icon="@drawable/ic_settings"
