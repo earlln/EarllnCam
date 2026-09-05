@@ -33,12 +33,20 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- Its own launcher entry: opening the capture log must never be a
+             detour through MainActivity, which starts shooting immediately. -->
         <activity
             android:name=".GalleryActivity"
             android:exported="true"
-            android:label="@string/gallery_title"
-            android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity" />
+            android:icon="@mipmap/ic_launcher_gallery"
+            android:roundIcon="@mipmap/ic_launcher_gallery_round"
+            android:label="@string/gallery_launcher_label"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".SettingsActivity"
