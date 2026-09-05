@@ -3,7 +3,8 @@ name: Release APK
 # Builds an installable EarllnCam APK.
 #   - push a tag like v1.1.0  -> builds and attaches the APK to a GitHub Release
 #   - push to a branch        -> builds only, so a broken build is caught early
-#   - "Run workflow" button   -> builds and leaves the APK as a run artifact
+#   - "Run workflow" button   -> builds; also publishes a Release when a tag
+#                                name is typed into the release_tag input
 on:
   push:
     branches:
@@ -12,6 +13,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '릴리즈 태그 (예: v1.1.0). 비워두면 빌드만 하고 릴리즈는 만들지 않습니다.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -42,6 +48,17 @@ jobs:
         run: |
           . ./version.properties
           echo "name=${versionMajor}.${versionMinor}.${versionPatch}" >> "$GITHUB_OUTPUT"
+
+      # Release notes = the CHANGELOG section for this version, not the whole file.
+      - name: Extract release notes
+        run: |
+          awk -v v="## ${{ steps.version.outputs.name }}" \
+            'index($0, v) == 1 {found = 1; next} found && /^## / {exit} found {print}' \
+            CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "EarllnCam v${{ steps.version.outputs.name }}" > RELEASE_NOTES.md
+          fi
+          cat RELEASE_NOTES.md
 
       - name: Decode signing keystore
         if: env.EARLLNCAM_KEYSTORE_BASE64 != ''
@@ -80,9 +97,10 @@ jobs:
           path: ${{ steps.collect.outputs.path }}
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
           name: EarllnCam v${{ steps.version.outputs.name }}
-          body_path: CHANGELOG.md
+          body_path: RELEASE_NOTES.md
           files: ${{ steps.collect.outputs.path }}

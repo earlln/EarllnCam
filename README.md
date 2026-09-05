@@ -36,8 +36,9 @@ GitHub Actions가 APK를 만들어 줍니다.
 
 - **태그로 릴리즈**: `v1.1.0` 같은 태그를 푸시하면 빌드 후
   [Releases](../../releases)에 `EarllnCam-v1.1.0.apk` 가 첨부됩니다.
-- **수동 빌드**: Actions 탭 → *Release APK* → *Run workflow* → 실행 결과의
-  Artifacts에서 APK 다운로드.
+- **수동 릴리즈**: Actions 탭 → *Release APK* → *Run workflow* 에서
+  `릴리즈 태그`에 `v1.1.0` 처럼 입력하면 태그와 Release를 만들고 APK를 첨부합니다.
+  비워두면 빌드만 하고, 실행 결과의 Artifacts에서 APK를 받을 수 있습니다.
 
 APK를 폰에 복사한 뒤 '출처를 알 수 없는 앱 설치'를 허용하고 설치하면 됩니다.
 서명 키가 없는 상태에서는 디버그 서명 APK가 만들어지므로, 이전에 다른 키로 설치한
