@@ -3,6 +3,7 @@ package com.example.earllncam
 import android.Manifest
 import android.content.ContentValues
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.widget.TextView
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -26,6 +28,7 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,11 +39,11 @@ import kotlin.coroutines.resume
  * Launcher entry point. Runs the whole capture sequence with zero taps:
  * ask for CAMERA once if needed, alternate front/back shots per AppSettings,
  * wipe the previous EarllnCam album on success, then finish() back to the
- * home screen. A small settings button sits in the bottom-right corner
- * (out of the way of the status bar / gesture area) so options are reachable
- * even mid-sequence; tapping it, or leaving this screen any other way,
- * cancels the capture and unbinds the camera instead of leaving a stalled
- * session behind.
+ * home screen. Two small buttons sit along the bottom edge (out of the way of
+ * the status bar / gesture area) so the capture log and the options are
+ * reachable even mid-sequence; tapping either, or leaving this screen any
+ * other way, cancels the capture and unbinds the camera instead of leaving a
+ * stalled session behind. The version badge is shown at the bottom.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -48,6 +51,19 @@ class MainActivity : AppCompatActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var captureJob: Job? = null
     private var cameraProvider: ProcessCameraProvider? = null
+
+    // Set while a system dialog is on top of us, so onPause does not read that
+    // as the user walking away mid-capture and kill the sequence.
+    private var awaitingSystemDialog = false
+    private var deleteConsent: CancellableContinuation<Unit>? = null
+
+    private val requestDeleteConsent = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) {
+        awaitingSystemDialog = false
+        deleteConsent?.takeIf { it.isActive }?.resume(Unit)
+        deleteConsent = null
+    }
 
     private val requestCameraPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -63,8 +79,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.statusText)
+        findViewById<TextView>(R.id.versionText).text = AppVersion.label(this)
+        findViewById<FloatingActionButton>(R.id.galleryButton).setOnClickListener {
+            stopAndOpen(GalleryActivity::class.java)
+        }
         findViewById<FloatingActionButton>(R.id.settingsButton).setOnClickListener {
-            stopAndOpenSettings()
+            stopAndOpen(SettingsActivity::class.java)
         }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -83,18 +103,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopAndOpenSettings() {
+    private fun stopAndOpen(target: Class<*>) {
         if (isFinishing) return
         captureJob?.cancel()
         runCatching { cameraProvider?.unbindAll() }
-        startActivity(Intent(this, SettingsActivity::class.java))
+        // Send it to its own task (see the manifest): left in this one, it would
+        // outlive the finish() below and become what the launcher reopens
+        // instead of a fresh capture.
+        startActivity(Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         finish()
     }
 
     override fun onPause() {
         super.onPause()
-        // The user switched away (tapped the settings button, or left some other
-        // way) before the sequence finished on its own. Camera access dies with
+        if (awaitingSystemDialog) return
+        // The user switched away (tapped one of the bottom buttons, or left some
+        // other way) before the sequence finished on its own. Camera access dies with
         // foreground anyway, so stop cleanly here instead of leaving a stalled
         // session running.
         if (captureJob?.isActive == true) {
@@ -143,11 +167,31 @@ class MainActivity : AppCompatActivity() {
 
         if (keepOnlyLatest && previousUris.isNotEmpty()) {
             statusText.text = getString(R.string.status_cleaning_up)
-            MediaVault.deleteUris(this, previousUris)
+            val result = MediaVault.deleteUris(this, previousUris)
+            // Captures from an earlier install are not ours to delete quietly;
+            // the system asks the user instead, and without this they would pile
+            // up forever while the app claimed to keep only the latest.
+            result.consent?.let { consent ->
+                statusText.text = getString(R.string.status_cleanup_confirm)
+                awaitDeleteConsent(consent)
+            }
         }
 
         showStatusThenFinish(getString(R.string.status_done))
     }
+
+    private suspend fun awaitDeleteConsent(consent: IntentSender): Unit =
+        suspendCancellableCoroutine { cont ->
+            deleteConsent = cont
+            awaitingSystemDialog = true
+            runCatching {
+                requestDeleteConsent.launch(IntentSenderRequest.Builder(consent).build())
+            }.onFailure {
+                awaitingSystemDialog = false
+                deleteConsent = null
+                if (cont.isActive) cont.resume(Unit)
+            }
+        }
 
     private suspend fun getCameraProvider(): ProcessCameraProvider =
         suspendCancellableCoroutine { cont ->

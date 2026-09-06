@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/black">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -10,9 +11,19 @@
         android:padding="24dp">
 
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="@string/settings_title"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_shot_count_label"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -20,13 +31,15 @@
             android:id="@+id/shotCountPicker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:textColor="@color/white" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/settings_mode_label"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -41,14 +54,16 @@
                 android:id="@+id/radioPhoto"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_mode_photo" />
+                android:text="@string/settings_mode_photo"
+                android:textColor="@color/white" />
 
             <RadioButton
                 android:id="@+id/radioVideo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="24dp"
-                android:text="@string/settings_mode_video" />
+                android:text="@string/settings_mode_video"
+                android:textColor="@color/white" />
         </RadioGroup>
 
         <TextView
@@ -57,6 +72,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/settings_video_seconds_label"
+            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -64,7 +80,8 @@
             android:id="@+id/videoSecondsPicker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:textColor="@color/white" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/keepOnlyLatestSwitch"
@@ -72,7 +89,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:checked="true"
-            android:text="@string/settings_keep_only_latest_label" />
+            android:text="@string/settings_keep_only_latest_label"
+            android:textColor="@color/white" />
 
         <Button
             android:id="@+id/saveButton"
@@ -80,6 +98,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:text="@string/settings_save" />
+
+        <TextView
+            android:id="@+id/versionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
     </LinearLayout>
 </ScrollView>

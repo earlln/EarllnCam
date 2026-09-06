@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Only needed so the in-app gallery still lists past captures if the app
+         was reinstalled and MediaStore no longer credits us with those files. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
 
@@ -16,6 +23,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:clearTaskOnLaunch="true"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,6 +34,33 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- Its own launcher entry: opening the capture log must never be a
+             detour through MainActivity, which starts shooting immediately.
+             Its own task, too: MainActivity finishes itself once a sequence
+             ends, so sharing a task would leave this screen as what the
+             launcher resumes when the app icon is tapped next. -->
+        <activity
+            android:name=".GalleryActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_gallery"
+            android:roundIcon="@mipmap/ic_launcher_gallery_round"
+            android:label="@string/gallery_launcher_label"
+            android:screenOrientation="portrait"
+            android:taskAffinity="com.example.earllncam.gallery">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Opened from the log and living in its task, so backing out returns
+             to the list rather than to a capture. -->
+        <activity
+            android:name=".ViewerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:taskAffinity="com.example.earllncam.gallery" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
@@ -33,7 +68,7 @@
             android:roundIcon="@mipmap/ic_launcher_settings_round"
             android:label="@string/settings_title"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:taskAffinity="com.example.earllncam.settings">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -1,0 +1,120 @@
+name: Release APK
+
+# Builds an installable EarllnCam APK.
+#   - push a tag like v1.1.0  -> builds and attaches the APK to a GitHub Release
+#   - push to a branch        -> builds only, so a broken build is caught early
+#   - "Run workflow" button   -> builds; also publishes a Release when a tag
+#                                name is typed into the release_tag input
+on:
+  push:
+    branches:
+      - master
+      - 'claude/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '릴리즈 태그 (예: v1.1.0). 비워두면 빌드만 합니다. 이미 있는 태그를 적으면 이번에 빌드한 커밋으로 다시 만듭니다.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      # Optional: add these repository secrets to ship a properly signed
+      # release build. Without them the workflow ships the debug-signed APK,
+      # which installs fine by sideloading.
+      EARLLNCAM_KEYSTORE_BASE64: ${{ secrets.EARLLNCAM_KEYSTORE_BASE64 }}
+      EARLLNCAM_KEYSTORE_PASSWORD: ${{ secrets.EARLLNCAM_KEYSTORE_PASSWORD }}
+      EARLLNCAM_KEY_ALIAS: ${{ secrets.EARLLNCAM_KEY_ALIAS }}
+      EARLLNCAM_KEY_PASSWORD: ${{ secrets.EARLLNCAM_KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Read version
+        id: version
+        run: |
+          . ./version.properties
+          echo "name=${versionMajor}.${versionMinor}.${versionPatch}" >> "$GITHUB_OUTPUT"
+
+      # Release notes = the CHANGELOG section for this version, not the whole file.
+      - name: Extract release notes
+        run: |
+          awk -v v="## ${{ steps.version.outputs.name }}" \
+            'index($0, v) == 1 {found = 1; next} found && /^## / {exit} found {print}' \
+            CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "EarllnCam v${{ steps.version.outputs.name }}" > RELEASE_NOTES.md
+          fi
+          cat RELEASE_NOTES.md
+
+      - name: Decode signing keystore
+        if: env.EARLLNCAM_KEYSTORE_BASE64 != ''
+        run: |
+          echo "$EARLLNCAM_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/earllncam.jks"
+          echo "EARLLNCAM_KEYSTORE_FILE=$RUNNER_TEMP/earllncam.jks" >> "$GITHUB_ENV"
+
+      # The repo ships only gradlew.bat, so drive the wrapper jar directly.
+      - name: Build APK
+        run: |
+          if [ -n "$EARLLNCAM_KEYSTORE_BASE64" ]; then
+            TASK=assembleRelease
+          else
+            TASK=assembleDebug
+          fi
+          java -cp gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain \
+            "$TASK" --no-daemon --stacktrace
+
+      - name: Collect APK
+        id: collect
+        run: |
+          mkdir -p dist
+          APK=$(find app/build/outputs/apk -name '*.apk' ! -name '*unsigned*' | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "No APK produced" >&2
+            exit 1
+          fi
+          NAME="EarllnCam-v${{ steps.version.outputs.name }}.apk"
+          cp "$APK" "dist/$NAME"
+          echo "path=dist/$NAME" >> "$GITHUB_OUTPUT"
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EarllnCam-v${{ steps.version.outputs.name }}
+          path: ${{ steps.collect.outputs.path }}
+
+      # Naming an existing tag on a manual run re-cuts it, so the tag cannot be
+      # left pointing at a commit other than the one this APK was built from.
+      - name: Replace an existing release for this tag
+        if: github.event.inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/tags/$TAG" || true
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          # Without this the tag would be cut from the default branch, not from
+          # the commit that was built.
+          target_commitish: ${{ github.sha }}
+          name: EarllnCam v${{ steps.version.outputs.name }}
+          body_path: RELEASE_NOTES.md
+          files: ${{ steps.collect.outputs.path }}

@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.NumberPicker
 import android.widget.RadioGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -53,6 +54,8 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         keepOnlyLatestSwitch.isChecked = settings.keepOnlyLatest
+
+        findViewById<TextView>(R.id.versionText).text = AppVersion.label(this)
 
         findViewById<Button>(R.id.saveButton).setOnClickListener { save() }
     }
