@@ -13,10 +13,14 @@ import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -40,17 +44,24 @@ import java.util.concurrent.TimeUnit
  * The app owns these files, so they are normally readable without any runtime
  * permission; the read-media permission is still asked for once, because
  * ownership is lost if the app is reinstalled and the list would otherwise
- * come back empty.
+ * come back empty. Deleting is offered here too -- per row, or the whole list
+ * at once -- since captures kept from before a reinstall can only be removed
+ * with the user's say-so.
  */
 class GalleryActivity : AppCompatActivity() {
 
     private lateinit var listView: RecyclerView
     private lateinit var emptyView: View
     private lateinit var countText: TextView
+    private lateinit var deleteAllButton: Button
     private lateinit var adapter: MediaAdapter
 
     private val requestReadPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
+    ) { load() }
+
+    private val requestDeleteConsent = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
     ) { load() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,9 +71,11 @@ class GalleryActivity : AppCompatActivity() {
         listView = findViewById(R.id.mediaList)
         emptyView = findViewById(R.id.emptyGroup)
         countText = findViewById(R.id.galleryCount)
+        deleteAllButton = findViewById(R.id.deleteAllButton)
         findViewById<TextView>(R.id.versionText).text = AppVersion.label(this)
 
-        adapter = MediaAdapter(lifecycleScope, ::openItem)
+        adapter = MediaAdapter(lifecycleScope, ::openItem, ::confirmDeleteItem)
+        deleteAllButton.setOnClickListener { confirmDeleteAll() }
         listView.layoutManager = LinearLayoutManager(this)
         listView.adapter = adapter
 
@@ -93,6 +106,7 @@ class GalleryActivity : AppCompatActivity() {
             countText.text = getString(R.string.gallery_count, items.size)
             emptyView.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
             listView.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+            deleteAllButton.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         }
     }
 
@@ -107,9 +121,47 @@ class GalleryActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmDeleteItem(item: MediaVault.Item) {
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.gallery_delete_confirm, item.displayName))
+            .setPositiveButton(R.string.gallery_delete) { _, _ -> delete(listOf(item.uri)) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmDeleteAll() {
+        val uris = adapter.currentUris()
+        if (uris.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.gallery_delete_all_confirm, uris.size))
+            .setPositiveButton(R.string.gallery_delete) { _, _ -> delete(uris) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun delete(uris: List<Uri>) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                MediaVault.deleteUris(this@GalleryActivity, uris)
+            }
+            // Captures saved by an earlier install are not ours to delete on our
+            // own; the system asks the user, and the list refreshes either way
+            // once that dialog returns.
+            val consent = result.consent
+            if (consent != null) {
+                requestDeleteConsent.launch(IntentSenderRequest.Builder(consent).build())
+            } else {
+                Toast.makeText(this@GalleryActivity, R.string.gallery_deleted, Toast.LENGTH_SHORT)
+                    .show()
+                load()
+            }
+        }
+    }
+
     private class MediaAdapter(
         private val scope: CoroutineScope,
-        private val onClick: (MediaVault.Item) -> Unit
+        private val onClick: (MediaVault.Item) -> Unit,
+        private val onDelete: (MediaVault.Item) -> Unit
     ) : RecyclerView.Adapter<MediaAdapter.Holder>() {
 
         private val items = mutableListOf<MediaVault.Item>()
@@ -119,6 +171,8 @@ class GalleryActivity : AppCompatActivity() {
             items.addAll(newItems)
             notifyDataSetChanged()
         }
+
+        fun currentUris(): List<Uri> = items.map { it.uri }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             val view = LayoutInflater.from(parent.context)
@@ -136,6 +190,7 @@ class GalleryActivity : AppCompatActivity() {
             holder.subtitle.text = subtitleFor(context, item)
             holder.videoBadge.visibility = if (item.isVideo) View.VISIBLE else View.GONE
             holder.itemView.setOnClickListener { onClick(item) }
+            holder.deleteButton.setOnClickListener { onDelete(item) }
 
             holder.thumbnail.setImageDrawable(null)
             holder.thumbnailJob?.cancel()
@@ -186,6 +241,7 @@ class GalleryActivity : AppCompatActivity() {
             val videoBadge: ImageView = view.findViewById(R.id.videoBadge)
             val name: TextView = view.findViewById(R.id.itemName)
             val subtitle: TextView = view.findViewById(R.id.itemSubtitle)
+            val deleteButton: ImageButton = view.findViewById(R.id.deleteButton)
             var thumbnailJob: Job? = null
             var boundUri: Uri? = null
         }

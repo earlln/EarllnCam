@@ -8,6 +8,7 @@
     <string name="status_recording_front">%1$d / %2$d 녹화 중 (정면)</string>
     <string name="status_recording_back">%1$d / %2$d 녹화 중 (후면)</string>
     <string name="status_cleaning_up">이전 사진 정리 중...</string>
+    <string name="status_cleanup_confirm">이전 기록 삭제 확인이 필요합니다.</string>
     <string name="status_done">완료</string>
     <string name="status_permission_denied">카메라 권한이 없어 촬영할 수 없습니다.</string>
     <string name="status_camera_error">카메라를 사용할 수 없습니다.</string>
@@ -32,6 +33,11 @@
     <string name="gallery_type_photo">사진</string>
     <string name="gallery_type_video">동영상</string>
     <string name="gallery_open_failed">이 파일을 열 수 있는 앱이 없습니다.</string>
+    <string name="gallery_delete">삭제</string>
+    <string name="gallery_delete_all">전체 삭제</string>
+    <string name="gallery_delete_confirm">%1$s 을(를) 삭제할까요?</string>
+    <string name="gallery_delete_all_confirm">촬영 기록 %1$d개를 모두 삭제할까요?</string>
+    <string name="gallery_deleted">삭제했습니다.</string>
 
     <string name="version_label">EarllnCam v%1$s by Earlln.com</string>
 </resources>

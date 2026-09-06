@@ -1,8 +1,11 @@
 package com.example.earllncam
 
+import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Context
+import android.content.IntentSender
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 
 /**
@@ -37,10 +40,43 @@ object MediaVault {
 
     fun existingUris(context: Context): List<Uri> = listItems(context).map { it.uri }
 
-    fun deleteUris(context: Context, uris: List<Uri>) {
+    /**
+     * What a delete attempt left behind. Files this install did not create --
+     * anything saved before the app was reinstalled, say -- cannot be removed
+     * silently; [consent] is the system dialog to ask the user with, and the
+     * files are only gone once that dialog comes back OK.
+     */
+    data class DeleteResult(val blocked: List<Uri>, val consent: IntentSender?)
+
+    /**
+     * Deletes what this install owns outright and reports the rest, rather than
+     * swallowing the SecurityException scoped storage throws for files owned by
+     * an earlier install.
+     */
+    fun deleteUris(context: Context, uris: List<Uri>): DeleteResult {
+        val blocked = mutableListOf<Uri>()
+        var recoverable: IntentSender? = null
+
         for (uri in uris) {
-            runCatching { context.contentResolver.delete(uri, null, null) }
+            try {
+                context.contentResolver.delete(uri, null, null)
+            } catch (e: SecurityException) {
+                blocked.add(uri)
+                if (recoverable == null && e is RecoverableSecurityException) {
+                    recoverable = e.userAction.actionIntent.intentSender
+                }
+            }
         }
+
+        val consent = when {
+            blocked.isEmpty() -> null
+            // Android 11+ asks about the whole batch in one dialog; on 10 the
+            // exception itself carries the (per-file) intent to ask with.
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ->
+                MediaStore.createDeleteRequest(context.contentResolver, blocked).intentSender
+            else -> recoverable
+        }
+        return DeleteResult(blocked, consent)
     }
 
     private fun query(context: Context, collectionUri: Uri, isVideo: Boolean): List<Item> {

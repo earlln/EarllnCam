@@ -16,16 +16,34 @@
         android:textSize="22sp"
         android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/galleryCount"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:paddingStart="24dp"
-        android:paddingEnd="24dp"
+        android:paddingEnd="16dp"
         android:paddingTop="4dp"
-        android:paddingBottom="12dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp" />
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/galleryCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/deleteAllButton"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/gallery_delete_all"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
