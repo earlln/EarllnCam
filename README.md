@@ -4,8 +4,8 @@
 
 ## 화면
 
-- **메인**: 실행 즉시 촬영 시작. 아래 왼쪽 버튼은 **촬영 기록**, 오른쪽 버튼은 **설정**.
-  화면 아래에 `EarllnCam v1.3.0 by Earlln.com` 형태로 버전이 표시됩니다.
+- **메인**: 실행 즉시 촬영 시작(기록·설정 화면을 보고 난 뒤에도 앱 아이콘은 항상 촬영으로 진입). 아래 왼쪽 버튼은 **촬영 기록**, 오른쪽 버튼은 **설정**.
+  화면 아래에 `EarllnCam v1.3.1 by Earlln.com` 형태로 버전이 표시됩니다.
 - **촬영 기록**: 지금까지 EarllnCam이 저장한 사진/동영상을 최신순으로 보여줍니다.
   촬영 시각·길이·용량이 함께 나오고, 항목을 누르면 기본 사진/동영상 앱으로 열립니다.
   앱을 실행하면 바로 촬영이 시작되므로, 촬영 없이 기록만 볼 때는 홈 화면의
@@ -27,7 +27,7 @@
 ```properties
 versionMajor=1
 versionMinor=3
-versionPatch=0
+versionPatch=1
 ```
 
 - `versionName` = `major.minor.patch`
@@ -40,10 +40,10 @@ versionPatch=0
 
 GitHub Actions가 APK를 만들어 줍니다.
 
-- **태그로 릴리즈**: `v1.3.0` 같은 태그를 푸시하면 빌드 후
-  [Releases](../../releases)에 `EarllnCam-v1.3.0.apk` 가 첨부됩니다.
+- **태그로 릴리즈**: `v1.3.1` 같은 태그를 푸시하면 빌드 후
+  [Releases](../../releases)에 `EarllnCam-v1.3.1.apk` 가 첨부됩니다.
 - **수동 릴리즈**: Actions 탭 → *Release APK* → *Run workflow* 에서
-  `릴리즈 태그`에 `v1.3.0` 처럼 입력하면 빌드한 커밋에 태그를 달고 Release에 APK를 첨부합니다.
+  `릴리즈 태그`에 `v1.3.1` 처럼 입력하면 빌드한 커밋에 태그를 달고 Release에 APK를 첨부합니다.
   (이미 있는 태그를 적으면 그 릴리즈를 지우고 다시 만듭니다.)
   비워두면 빌드만 하고, 실행 결과의 Artifacts에서 APK를 받을 수 있습니다.
 

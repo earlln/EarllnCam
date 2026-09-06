@@ -107,7 +107,10 @@ class MainActivity : AppCompatActivity() {
         if (isFinishing) return
         captureJob?.cancel()
         runCatching { cameraProvider?.unbindAll() }
-        startActivity(Intent(this, target))
+        // Send it to its own task (see the manifest): left in this one, it would
+        // outlive the finish() below and become what the launcher reopens
+        // instead of a fresh capture.
+        startActivity(Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         finish()
     }
 
