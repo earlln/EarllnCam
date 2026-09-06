@@ -1,9 +1,7 @@
 package com.example.earllncam
 
 import android.Manifest
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
@@ -31,10 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 /**
  * Lists everything EarllnCam has saved, newest first, so an old capture can be
@@ -110,16 +104,10 @@ class GalleryActivity : AppCompatActivity() {
         }
     }
 
-    private fun openItem(item: MediaVault.Item) {
-        val intent = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(item.uri, item.mimeType)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        try {
-            startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(this, R.string.gallery_open_failed, Toast.LENGTH_SHORT).show()
-        }
-    }
+    // The in-app viewer rather than an external one: it can page through the
+    // rest of the log as the user swipes, and it offers handing the current
+    // file to another app from there.
+    private fun openItem(item: MediaVault.Item) = startActivity(ViewerActivity.intent(this, item))
 
     private fun confirmDeleteItem(item: MediaVault.Item) {
         AlertDialog.Builder(this)
@@ -187,7 +175,7 @@ class GalleryActivity : AppCompatActivity() {
             val context = holder.itemView.context
 
             holder.name.text = item.displayName
-            holder.subtitle.text = subtitleFor(context, item)
+            holder.subtitle.text = MediaLabels.subtitle(context, item)
             holder.videoBadge.visibility = if (item.isVideo) View.VISIBLE else View.GONE
             holder.itemView.setOnClickListener { onClick(item) }
             holder.deleteButton.setOnClickListener { onDelete(item) }
@@ -214,28 +202,6 @@ class GalleryActivity : AppCompatActivity() {
                 context.contentResolver.loadThumbnail(item.uri, Size(THUMB_PX, THUMB_PX), null)
             }.getOrNull()
 
-        private fun subtitleFor(context: Context, item: MediaVault.Item): String {
-            val type = context.getString(
-                if (item.isVideo) R.string.gallery_type_video else R.string.gallery_type_photo
-            )
-            val parts = mutableListOf(type)
-            if (item.isVideo && item.durationMs > 0) parts.add(formatDuration(item.durationMs))
-            if (item.sizeBytes > 0) parts.add(formatSize(item.sizeBytes))
-            parts.add(DATE_FORMAT.format(Date(item.dateAddedSeconds * 1000L)))
-            return parts.joinToString(" · ")
-        }
-
-        private fun formatDuration(durationMs: Long): String {
-            val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(durationMs)
-            return String.format(Locale.getDefault(), "%d:%02d", totalSeconds / 60, totalSeconds % 60)
-        }
-
-        private fun formatSize(bytes: Long): String = when {
-            bytes >= 1024 * 1024 ->
-                String.format(Locale.getDefault(), "%.1f MB", bytes / (1024.0 * 1024.0))
-            else -> String.format(Locale.getDefault(), "%.0f KB", bytes / 1024.0)
-        }
-
         class Holder(view: View) : RecyclerView.ViewHolder(view) {
             val thumbnail: ImageView = view.findViewById(R.id.thumbnail)
             val videoBadge: ImageView = view.findViewById(R.id.videoBadge)
@@ -248,7 +214,6 @@ class GalleryActivity : AppCompatActivity() {
 
         private companion object {
             const val THUMB_PX = 256
-            val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         }
     }
 }

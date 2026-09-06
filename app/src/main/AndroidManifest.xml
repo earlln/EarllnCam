@@ -53,6 +53,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Opened from the log and living in its task, so backing out returns
+             to the list rather than to a capture. -->
+        <activity
+            android:name=".ViewerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:taskAffinity="com.example.earllncam.gallery" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="true"

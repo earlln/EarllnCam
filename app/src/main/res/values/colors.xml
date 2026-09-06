@@ -6,4 +6,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="text_secondary">#B3FFFFFF</color>
     <color name="thumbnail_placeholder">#33FFFFFF</color>
+    <color name="scrim">#B3000000</color>
 </resources>
