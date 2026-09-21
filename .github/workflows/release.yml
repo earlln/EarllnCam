@@ -95,6 +95,7 @@ jobs:
         with:
           name: EarllnCam-v${{ steps.version.outputs.name }}
           path: ${{ steps.collect.outputs.path }}
+          retention-days: 1
 
       # Naming an existing tag on a manual run re-cuts it, so the tag cannot be
       # left pointing at a commit other than the one this APK was built from.
