@@ -17,6 +17,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var modeGroup: RadioGroup
     private lateinit var videoSecondsLabel: View
     private lateinit var videoSecondsPicker: NumberPicker
+    private lateinit var recordAudioSwitch: SwitchMaterial
     private lateinit var keepOnlyLatestSwitch: SwitchMaterial
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,6 +31,7 @@ class SettingsActivity : AppCompatActivity() {
         modeGroup = findViewById(R.id.modeGroup)
         videoSecondsLabel = findViewById(R.id.videoSecondsLabel)
         videoSecondsPicker = findViewById(R.id.videoSecondsPicker)
+        recordAudioSwitch = findViewById(R.id.recordAudioSwitch)
         keepOnlyLatestSwitch = findViewById(R.id.keepOnlyLatestSwitch)
 
         shotCountPicker.minValue = AppSettings.MIN_SHOT_COUNT
@@ -53,6 +55,7 @@ class SettingsActivity : AppCompatActivity() {
             updateVideoFieldsVisibility(mode)
         }
 
+        recordAudioSwitch.isChecked = settings.recordAudio
         keepOnlyLatestSwitch.isChecked = settings.keepOnlyLatest
 
         findViewById<TextView>(R.id.versionText).text = AppVersion.label(this)
@@ -64,6 +67,7 @@ class SettingsActivity : AppCompatActivity() {
         val visibility = if (mode == CaptureMode.VIDEO) View.VISIBLE else View.GONE
         videoSecondsLabel.visibility = visibility
         videoSecondsPicker.visibility = visibility
+        recordAudioSwitch.visibility = visibility
     }
 
     private fun save() {
@@ -77,6 +81,7 @@ class SettingsActivity : AppCompatActivity() {
             CaptureMode.PHOTO
         }
         settings.videoClipSeconds = videoSecondsPicker.value
+        settings.recordAudio = recordAudioSwitch.isChecked
         settings.keepOnlyLatest = keepOnlyLatestSwitch.isChecked
 
         Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show()

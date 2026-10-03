@@ -24,6 +24,11 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean(KEY_KEEP_ONLY_LATEST, true)
         set(value) = prefs.edit().putBoolean(KEY_KEEP_ONLY_LATEST, value).apply()
 
+    /** Microphone use is opt-out: a silent clip is rarely what was wanted. */
+    var recordAudio: Boolean
+        get() = prefs.getBoolean(KEY_RECORD_AUDIO, true)
+        set(value) = prefs.edit().putBoolean(KEY_RECORD_AUDIO, value).apply()
+
     var videoClipSeconds: Int
         get() = prefs.getInt(KEY_VIDEO_SECONDS, DEFAULT_VIDEO_SECONDS)
         set(value) = prefs.edit()
@@ -36,6 +41,7 @@ class AppSettings(context: Context) {
         private const val KEY_MODE = "mode"
         private const val KEY_KEEP_ONLY_LATEST = "keep_only_latest"
         private const val KEY_VIDEO_SECONDS = "video_seconds"
+        private const val KEY_RECORD_AUDIO = "record_audio"
 
         const val DEFAULT_SHOT_COUNT = 6
         const val MIN_SHOT_COUNT = 1

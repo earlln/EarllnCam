@@ -20,6 +20,7 @@
     <string name="settings_mode_photo">사진</string>
     <string name="settings_mode_video">동영상</string>
     <string name="settings_video_seconds_label">클립당 녹화 시간(초)</string>
+    <string name="settings_record_audio_label">동영상에 소리도 함께 녹음</string>
     <string name="settings_keep_only_latest_label">기존 사진/동영상은 항상 지우고 최신 결과만 남기기</string>
     <string name="settings_save">저장</string>
     <string name="settings_saved">설정을 저장했습니다.</string>

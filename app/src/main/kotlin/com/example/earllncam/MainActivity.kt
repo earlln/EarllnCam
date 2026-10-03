@@ -65,10 +65,12 @@ class MainActivity : AppCompatActivity() {
         deleteConsent = null
     }
 
-    private val requestCameraPermission = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+    private val requestPermissions = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        // Only the camera is non-negotiable; a refused microphone just means the
+        // clips come out silent, which beats not shooting at all.
+        if (hasPermission(Manifest.permission.CAMERA)) {
             beginSequence()
         } else {
             showStatusThenFinish(getString(R.string.status_permission_denied))
@@ -87,14 +89,26 @@ class MainActivity : AppCompatActivity() {
             stopAndOpen(SettingsActivity::class.java)
         }
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        val missing = requiredPermissions().filterNot { hasPermission(it) }
+        if (missing.isEmpty()) {
             beginSequence()
         } else {
-            requestCameraPermission.launch(Manifest.permission.CAMERA)
+            requestPermissions.launch(missing.toTypedArray())
         }
     }
+
+    /** The microphone is only worth asking about when sound is actually wanted. */
+    private fun requiredPermissions(): List<String> {
+        val settings = AppSettings(this)
+        val permissions = mutableListOf(Manifest.permission.CAMERA)
+        if (settings.mode == CaptureMode.VIDEO && settings.recordAudio) {
+            permissions.add(Manifest.permission.RECORD_AUDIO)
+        }
+        return permissions
+    }
+
+    private fun hasPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun beginSequence() {
         captureJob = lifecycleScope.launch {
@@ -133,6 +147,9 @@ class MainActivity : AppCompatActivity() {
         val count = settings.shotCount
         val mode = settings.mode
         val keepOnlyLatest = settings.keepOnlyLatest
+        // Asked for, and actually allowed: a denied microphone falls back to a
+        // silent clip rather than failing the recording.
+        val withAudio = settings.recordAudio && hasPermission(Manifest.permission.RECORD_AUDIO)
 
         val previousUris = if (keepOnlyLatest) MediaVault.existingUris(this) else emptyList()
 
@@ -157,7 +174,9 @@ class MainActivity : AppCompatActivity() {
 
             when (mode) {
                 CaptureMode.PHOTO -> captureOnePhoto(cameraProvider, selector, i)
-                CaptureMode.VIDEO -> captureOneVideo(cameraProvider, selector, i, settings.videoClipSeconds)
+                CaptureMode.VIDEO -> captureOneVideo(
+                    cameraProvider, selector, i, settings.videoClipSeconds, withAudio
+                )
             }
 
             delay(300)
@@ -244,7 +263,8 @@ class MainActivity : AppCompatActivity() {
         provider: ProcessCameraProvider,
         selector: CameraSelector,
         index: Int,
-        seconds: Int
+        seconds: Int,
+        withAudio: Boolean
     ): Uri? = suspendCancellableCoroutine { cont ->
         val recorder = Recorder.Builder()
             .setQualitySelector(QualitySelector.from(Quality.HD))
@@ -270,7 +290,10 @@ class MainActivity : AppCompatActivity() {
         ).setContentValues(values).build()
 
         var resumed = false
-        val recording = recorder.prepareRecording(this, outputOptions)
+        val pending = recorder.prepareRecording(this, outputOptions)
+        if (withAudio) pending.withAudioEnabled()
+
+        val recording = pending
             .start(ContextCompat.getMainExecutor(this)) { event ->
                 if (event is VideoRecordEvent.Finalize && !resumed) {
                     resumed = true

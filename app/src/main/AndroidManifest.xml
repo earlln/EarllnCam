@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Only requested when a video capture is about to run with sound on. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Only needed so the in-app gallery still lists past captures if the app
          was reinstalled and MediaStore no longer credits us with those files. -->
     <uses-permission
@@ -11,6 +13,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:allowBackup="true"
